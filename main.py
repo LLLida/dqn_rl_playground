@@ -4,7 +4,7 @@ import numpy as np
 
 pygame.init()
 
-game_width, game_height = 20, 30
+game_width, game_height = 12, 30
 cell_size = 30
 top_margin = 4                  # чтобы фигуры плавно входили на экран
 game_grid = np.zeros((top_margin+game_height, game_width), dtype=np.int32)
@@ -48,7 +48,7 @@ def piece_pos(piece):
     y = sum([b[1] for b in piece]) / len(piece)
     return int(x), int(y)
 
-def rotate_piece_cw(piece):
+def rotate_piece(piece):
     mx, my = piece_pos(piece)
 
     for i in range(len(piece)):
@@ -57,43 +57,39 @@ def rotate_piece_cw(piece):
 
     for i in range(len(piece)):
         x, y = piece[i]
-        piece[i] = (mx + y-my, my + mx-x)
-
-    for i in range(len(piece)):
-        x, y = piece[i]
-        game_grid[y, x] = 3
-
-def rotate_piece_ccw(piece):
-    mx, my = piece_pos(piece)
-
-    for i in range(len(piece)):
-        x, y = piece[i]
-        game_grid[y, x] = 0
-
-    for i in range(len(piece)):
-        x, y = piece[i]
-        piece[i] = (mx + my-y, my + x-mx)
+        piece[i] = (mx + (y-my), my + (mx-x))
 
     for i in range(len(piece)):
         x, y = piece[i]
         game_grid[y, x] = 3
 
 def move_piece(piece, dx, dy) -> bool:
+    min_x = np.min([b[0] for b in piece])
     max_x = np.max([b[0] for b in piece])
     max_y = np.max([b[1] for b in piece])
+    if max_x+dx > game_width-1:
+        return False
+    if min_x+dx < 0:
+        return False
     if max_y >= game_height+top_margin-1:
         return True
 
-    for i in range(len(piece)):
-        x, y = piece[i]
-        game_grid[y, x] = 0
-        piece[i] = x+dx, y+dy
+    can_move = True
+    for x, y in piece:
+        if not (x+dx, y+dy) in piece and game_grid[y+dy, x+dx] != 0:
+            can_move = False
+            break
+    if can_move:
+        for i in range(len(piece)):
+            x, y = piece[i]
+            game_grid[y, x] = 0
+            piece[i] = x+dx, y+dy
 
-    for i in range(len(piece)):
-        x, y = piece[i]
-        game_grid[y, x] = 3
+        for i in range(len(piece)):
+            x, y = piece[i]
+            game_grid[y, x] = 3
 
-    return False
+    return not can_move
 
 piece = spawn_piece()
 
@@ -132,9 +128,9 @@ while running:
             if event.key == pygame.K_ESCAPE:
                 running = False
             if event.key == pygame.K_UP:
-                rotate_piece_cw(piece)
+                rotate_piece(piece)
             if event.key == pygame.K_DOWN:
-                rotate_piece_ccw(piece)
+                move_piece(piece, 0, 1)
             if event.key == pygame.K_LEFT:
                 move_piece(piece, -1, 0)
             if event.key == pygame.K_RIGHT:
