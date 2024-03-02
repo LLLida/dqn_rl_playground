@@ -4,7 +4,7 @@ import numpy as np
 
 pygame.init()
 
-game_width, game_height = 12, 30
+game_width, game_height = 12, 26
 cell_size = 30
 top_margin = 4                  # чтобы фигуры плавно входили на экран
 game_grid = np.zeros((top_margin+game_height, game_width), dtype=np.int32)
@@ -51,6 +51,13 @@ def piece_pos(piece):
 def rotate_piece(piece):
     mx, my = piece_pos(piece)
 
+    new_piece = [(mx + (y-my), my + (mx-x)) for x, y in piece]
+    for x, y in new_piece:
+        if x >= game_width or x < 0 or y >= game_height:
+            return
+        # if not (x, y) in new_piece and game_grid[y, x] != 0:
+        #     return
+
     for i in range(len(piece)):
         x, y = piece[i]
         game_grid[y, x] = 0
@@ -67,9 +74,7 @@ def move_piece(piece, dx, dy) -> bool:
     min_x = np.min([b[0] for b in piece])
     max_x = np.max([b[0] for b in piece])
     max_y = np.max([b[1] for b in piece])
-    if max_x+dx > game_width-1:
-        return False
-    if min_x+dx < 0:
+    if max_x+dx > game_width-1 or min_x+dx < 0:
         return False
     if max_y >= game_height+top_margin-1:
         return True
@@ -120,6 +125,7 @@ def draw_grid():
 clock = pygame.time.Clock()
 
 running = True
+paused = False
 while running:
     clock.tick(10)
 
@@ -135,11 +141,35 @@ while running:
                 move_piece(piece, -1, 0)
             if event.key == pygame.K_RIGHT:
                 move_piece(piece, 1, 0)
+            if event.key == pygame.K_SPACE:
+                paused = not paused
         if event.type == pygame.QUIT:
             running = False
 
+    if paused:
+        continue
+
     if move_piece(piece, 0, 1):
         piece = spawn_piece()
+
+        points = 0
+        # проверяем заполнилась ли какая-то строчка
+        i = game_grid.shape[0]-1
+        while i >= top_margin:
+            row = game_grid[i, :]
+            if np.sum(row) == 0:
+                break
+            if np.all(row > 0):
+                points += 10
+                game_grid[top_margin:i+1, :] = game_grid[top_margin-1:i, :]
+            else:
+                i -= 1
+        if points>0: print(f'Got {points} points!')
+
+        if np.sum(game_grid[top_margin]) > 0:
+            print('Game over!')
+            paused = True
+
     # print(piece)
 
     win.fill(black)
