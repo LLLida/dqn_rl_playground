@@ -1,5 +1,6 @@
 numpy
 gymnasium
 torch
+tqdm
 matplotlib
 pygame

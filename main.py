@@ -1,10 +1,9 @@
 import pygame
-import random
 import numpy as np
 
 from tetris.game import TetrisGame
 from tetris.agent import TetrisAgent
-import training as T
+import rl.training as T
 
 pygame.init()
 

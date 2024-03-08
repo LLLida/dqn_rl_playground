@@ -6,10 +6,10 @@ from typing import Tuple, Optional
 class TetrisGame:
 
     action_names = {
-        'nothing': 0,
-        'left': 1,
-        'right': 2,
-        'up': 3
+        'nothing' : 0,
+        'left'    : 1,
+        'right'   : 2,
+        'up'      : 3
     }
 
     def __init__(self, width: int, height: int, max_steps: int = 300):
@@ -36,9 +36,10 @@ class TetrisGame:
             self._rotate_piece()
 
         if self._move_piece(0, 1):
+            y = np.min([b[1] for b in self.piece])
             self._spawn_piece()
 
-            points = 0
+            points = -1.0 / y
 
             i = self.grid.shape[0]-1
             while i >= self.top_margin:
@@ -46,7 +47,7 @@ class TetrisGame:
                 if np.sum(row) == 0:
                     break
                 if np.all(row > 0):
-                    points += 1
+                    points += 10
                     self.grid[self.top_margin:i+1, :] = self.grid[self.top_margin-1:i, :]
                 else:
                     i -= 1
