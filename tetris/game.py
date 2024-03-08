@@ -12,17 +12,21 @@ class TetrisGame:
         'up': 3
     }
 
-    def __init__(self, width: int, height: int):
+    def __init__(self, width: int, height: int, max_steps: int = 300):
         self.width = width
         self.height = height
         self.top_margin = 4
         self.grid = np.zeros((self.top_margin+height, width), dtype=np.int32)
+        self.step_id = 0
+        self.max_steps = max_steps
 
         self._spawn_piece()
 
     def step(self, action: int) -> Tuple[np.ndarray, int, bool]:
         points = 0
-        finished = False
+        terminated = False
+
+        prev_obs = self.grid[self.top_margin:]
 
         if action == 1:
             self._move_piece(-1, 0)
@@ -48,15 +52,26 @@ class TetrisGame:
                     i -= 1
 
             if np.sum(self.grid[self.top_margin]) > 0:
-                paused = True
+                terminated = True
 
-        return self.grid[self.top_margin:], points, finished
+        obs = np.concatenate([prev_obs[np.newaxis, :, :], self.grid[np.newaxis, self.top_margin:, :]])
 
-    def reset(self, seed:Optional[int] = None):
+        truncated = False
+        self.step_id += 1
+        if self.step_id > self.max_steps:
+            truncated = True
+
+        return obs, points, terminated, truncated
+
+    def reset(self, seed:Optional[int] = None) -> np.ndarray:
+        self.step_id = 0
         random.seed(seed)
 
-        self.grid = np.zeros((self.top_margin+height, width), dtype=np.int32)
+        self.grid = np.zeros((self.top_margin+self.height, self.width), dtype=np.int32)
         self._spawn_piece()
+
+        obs = self.grid[np.newaxis, self.top_margin:, :]
+        return np.concatenate([obs, obs])
 
     def _spawn_piece(self):
         piece_shapes = [
