@@ -1,0 +1,7 @@
+#+AUTHOR: Adil Mokhammad
+
+#+TITLE: Deep Q networks play games
+
+* Начало работы
+
+TODO
