@@ -12,6 +12,8 @@ pygame.display.set_caption('Dino')
 game.reset()
 clock = pygame.time.Clock()
 running = True
+paused = False
+points = 0
 while running:
     clock.tick(10)
 
@@ -23,12 +25,26 @@ while running:
                 running = False
             if event.key == pygame.K_SPACE:
                 action = 1
+            if event.key == pygame.K_p:
+                paused = not paused
+            if event.key == pygame.K_i:
+                print(state)
         if event.type == pygame.QUIT:
             running = False
 
-    state, reward, terminated, _ = game.step(action)
+    if paused:
+        continue
 
-    game.render(win)
+    state, reward, terminated, _ = game.step(action)
+    points += reward
+    if terminated:
+        print(f'You scored {points} points!')
+        paused = True
+        points = 0
+        game.render(win)
+        state = game.reset()
+    else:
+        game.render(win)
 
     pygame.display.flip()
 pygame.quit()

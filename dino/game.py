@@ -10,36 +10,58 @@ class DinoGame:
         self.width = 640
         self.height = 480
 
+        self.x = 50
+
+        self.game_speed = 12
+        self.player_width = 50
         self.player_height = 80
-        self.obs_prob = 0.05
+        self.obstacle_width = 50
+        self.obstacle_height = 80
+        self.obstacle_spawn_prob = 0.02
+        self.jump_a = 20
+        self.G = 2
         self.max_steps = max_steps
 
     def step(self, action: int) -> Tuple[np.ndarray, int, bool, bool]:
         if action == 1 and self.y == 0:
-            self.dy += 12
+            self.dy += self.jump_a
 
         self.y += self.dy
         if self.y <= 0:
             self.dy = 0
         else:
-            self.dy -= 1
+            self.dy -= self.G
 
         if self._can_spawn_obstacle():
             x = self.width-1
             y = 0
             self.obstacles.append((x, y))
         for i, (x, y) in enumerate(self.obstacles):
-            dx = 12
+            dx = self.game_speed
             self.obstacles[i] = (x-dx, y)
         # remove obstacles out of bounds
-        self.obstacles = [(x, y) for x, y in obstacles if x+50 < 0]
+        self.obstacles = [(x, y) for x, y in self.obstacles if x+self.obstacle_width >= 0]
 
         self.t += 1
-        reward = 0.1 * (t % 5 == 0)
-        # TODO: iterate all obstacles for intersection
-        truncated = t >= self.max_steps
+        reward = 0.1 * (self.t % 5 == 0)
+        terminated = False
+        for (x, y) in self.obstacles:
+            if ((self.x >= x and self.x <= x + self.obstacle_width) or (x >= self.x and x <= self.x + self.player_width)) and \
+               ((self.y >= y and self.y <= y + self.obstacle_height) or (y >= self.y and y <= self.y + self.player_height)):
+                # штрафуем за то, что агент врезался в препятствие
+                reward -= 5
+                terminated = True
+                break
+        truncated = self.t >= self.max_steps
 
-        return None, reward, None, truncated
+        rightmost = (-100, 0)
+        for (x, y) in self.obstacles:
+            if x > self.x:
+                rightmost = (x, y)
+                break
+        state = np.array([self.y, self.dy, rightmost[0], rightmost[1]])
+
+        return rightmost, reward, terminated, truncated
 
     def reset(self, seed: Optional[int] = None) -> np.ndarray:
         random.seed(seed)
@@ -54,15 +76,14 @@ class DinoGame:
         pc = (255, 255, 255)
         oc = (255, 0, 0)
         ground = (100, 100, 20)
-        player_height = 100
-        scale = 2
+        ground_height = 50
 
         win.fill(bg)
-        pygame.draw.rect(win, ground, (0, self.height-50, self.width, 50))
+        pygame.draw.rect(win, ground, (0, self.height-ground_height, self.width, ground_height))
         for x, y in self.obstacles:
-            pygame.draw.rect(win, oc, (x, self.height-50-player_height-y, 50, player_height))
-        pygame.draw.rect(win, pc, (50, self.height-player_height-(50+scale*self.y), 50, player_height))
+            pygame.draw.rect(win, oc, (x, self.height-ground_height-self.obstacle_height-y, self.obstacle_width, self.obstacle_height))
+        pygame.draw.rect(win, pc, (self.x, self.height-self.player_height-ground_height-self.y, self.player_width, self.player_height))
 
     def _can_spawn_obstacle(self):
         left_margin = 250
-        return (len(self.obstacles) == 0 or self.obstacles[-1][0] < self.width-left_margin) and random.uniform(0, 1) <= self.obs_prob
+        return (len(self.obstacles) == 0 or self.obstacles[-1][0] < self.width-left_margin) and random.uniform(0, 1) <= self.obstacle_spawn_prob
