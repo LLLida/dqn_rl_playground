@@ -1,19 +1,32 @@
+import numpy as np
 import pygame
+import torch
 
 from dino.game import DinoGame
+from dino.agent import DinoAgent
 
 game = DinoGame()
+agent = DinoAgent(game.state_dim, epsilon=0.0)
+agent_path = 'dino.pkl'
+try:
+    agent.load_state_dict(torch.load(agent_path))
+except:
+    print(f'Файл нейронной сети не нашёлся в "{agent_path}". Используем рандомные веса')
 
 pygame.init()
 win = pygame.display.set_mode((game.width, game.height))
 
+font = pygame.font.SysFont('Arrial', 20)
+
 pygame.display.set_caption('Dino')
 
-game.reset()
+prev_state = game.reset()
+
 clock = pygame.time.Clock()
 running = True
 paused = False
 points = 0
+human_playing = True
 while running:
     clock.tick(10)
 
@@ -25,6 +38,8 @@ while running:
                 running = False
             if event.key == pygame.K_SPACE:
                 action = 1
+            if event.key == pygame.K_RETURN: # при нажатии enter меняем игрока(человек или нейронка)
+                human_playing = not human_playing
             if event.key == pygame.K_p:
                 paused = not paused
             if event.key == pygame.K_i:
@@ -34,6 +49,15 @@ while running:
 
     if paused:
         continue
+
+    if not human_playing:
+        qvalues = agent.get_qvalues(prev_state[np.newaxis])
+        action  = agent.sample_actions(qvalues)[0]
+        text = f'qvalues: [{qvalues[0, 0]:.3f}, {qvalues[0, 1]:.3f}]'
+    else:
+        text = ''
+
+    text_surface = font.render(text, False, (255, 255, 255))
 
     state, reward, terminated, _ = game.step(action)
     points += reward
@@ -45,6 +69,10 @@ while running:
         state = game.reset()
     else:
         game.render(win)
+
+    prev_state = state
+
+    win.blit(text_surface, (0,0))
 
     pygame.display.flip()
 pygame.quit()
