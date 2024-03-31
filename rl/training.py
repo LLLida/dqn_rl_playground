@@ -104,3 +104,38 @@ def compute_td_loss(device,
             "there's something wrong with target q-values, they must be a vector"
 
     return loss
+
+def compute_td_loss_weighted(device,
+                             states: np.ndarray,
+                             actions: np.ndarray,
+                             rewards: np.ndarray,
+                             next_states: np.ndarray,
+                             is_done: np.ndarray,
+                             weights: np.ndarray,
+                             agent,
+                             target_network,
+                             gamma: float = 0.99):
+    states = torch.tensor(states, device=device, dtype=torch.float32)
+    actions = torch.tensor(actions, device=device, dtype=torch.int64)
+    rewards = torch.tensor(rewards, device=device, dtype=torch.float32)
+    next_states = torch.tensor(next_states, device=device, dtype=torch.float)
+    is_done = torch.tensor(
+        is_done.astype('float32'),
+        device=device,
+        dtype=torch.float32,
+    )
+    weights = torch.tensor(weights, device=device, dtype=torch.float32)
+    is_not_done = 1 - is_done
+
+    predicted_qvalues = agent(states)
+
+    predicted_next_qvalues = target_network(next_states) # shape: [batch_size, n_actions]
+
+    predicted_qvalues_for_actions = predicted_qvalues[range(len(actions)), actions] # shape: [batch_size]
+    next_state_values = torch.max(predicted_next_qvalues, axis=1)[0]
+
+    target_qvalues_for_actions = rewards + gamma * next_state_values * is_not_done
+
+    loss = torch.mean((predicted_qvalues_for_actions - target_qvalues_for_actions.detach())**2 * weights)
+
+    return loss
