@@ -10,6 +10,8 @@ class DinoGame:
         self.width = 640
         self.height = 480
 
+        self.state_dim = 4
+
         self.x = 50
 
         self.game_speed = 12
@@ -23,8 +25,13 @@ class DinoGame:
         self.max_steps = max_steps
 
     def step(self, action: int) -> Tuple[np.ndarray, int, bool, bool]:
+        self.t += 1
+        reward = 0.02
+
         if action == 1 and self.y == 0:
             self.dy += self.jump_a
+            if self.dy > 0:
+                reward -= 0.03
 
         self.y += self.dy
         if self.y <= 0:
@@ -41,9 +48,6 @@ class DinoGame:
             self.obstacles[i] = (x-dx, y)
         # remove obstacles out of bounds
         self.obstacles = [(x, y) for x, y in self.obstacles if x+self.obstacle_width >= 0]
-
-        self.t += 1
-        reward = 0.1 * (self.t % 5 == 0)
         terminated = False
         for (x, y) in self.obstacles:
             if ((self.x >= x and self.x <= x + self.obstacle_width) or (x >= self.x and x <= self.x + self.player_width)) and \
@@ -54,14 +58,7 @@ class DinoGame:
                 break
         truncated = self.t >= self.max_steps
 
-        rightmost = (-100, 0)
-        for (x, y) in self.obstacles:
-            if x > self.x:
-                rightmost = (x, y)
-                break
-        state = np.array([self.y, self.dy, rightmost[0], rightmost[1]])
-
-        return rightmost, reward, terminated, truncated
+        return self._state(), reward, terminated, truncated
 
     def reset(self, seed: Optional[int] = None) -> np.ndarray:
         random.seed(seed)
@@ -70,6 +67,8 @@ class DinoGame:
         self.y = 0
         self.dy = 0
         self.obstacles = []
+
+        return self._state()
 
     def render(self, win):
         bg = (0, 0, 0)
@@ -87,3 +86,12 @@ class DinoGame:
     def _can_spawn_obstacle(self):
         left_margin = 250
         return (len(self.obstacles) == 0 or self.obstacles[-1][0] < self.width-left_margin) and random.uniform(0, 1) <= self.obstacle_spawn_prob
+
+    def _state(self):
+        rightmost = (-100, 0)
+        for (x, y) in self.obstacles:
+            if x > self.x:
+                rightmost = (x, y)
+                break
+        # state = np.array([self.y, self.dy, rightmost[0], rightmost[1]])
+        return np.array([self.y / self.width, self.dy / 10.0, rightmost[0] / self.width, rightmost[1] / self.height])
