@@ -16,7 +16,7 @@ except:
 pygame.init()
 win = pygame.display.set_mode((game.width, game.height))
 
-font = pygame.font.SysFont('Arrial', 20)
+font = pygame.font.SysFont('Arrial', 40)
 
 pygame.display.set_caption('Dino')
 
@@ -55,7 +55,7 @@ while running:
         action  = agent.sample_actions(qvalues)[0]
         text = f'qvalues: [{qvalues[0, 0]:.3f}, {qvalues[0, 1]:.3f}]'
     else:
-        text = ''
+        text = 'press SPACE to jump, ENTER to switch player'
 
     text_surface = font.render(text, False, (255, 255, 255))
 

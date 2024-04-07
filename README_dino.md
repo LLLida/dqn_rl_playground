@@ -20,3 +20,9 @@ replay и target network.
  - что-то модное, чего я не знаю
 
  - policy gradient (вряд ли)
+
+## Статьи по DQN
+
+ - https://arxiv.org/pdf/1509.06461.pdf
+ - https://arxiv.org/pdf/1710.02298.pdf
+ - https://arxiv.org/pdf/1805.05536.pdf
