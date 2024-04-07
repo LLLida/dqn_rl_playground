@@ -17,9 +17,12 @@ class DinoGame:
         self.game_speed = 0.01875
         self.player_width = 0.07825
         self.player_height = 0.1667
-        self.obstacle_width = 0.07825
-        self.obstacle_height = 0.1667
+        self.ground_obstacle_width = 0.07825
+        self.ground_obstacle_height = 0.1667
+        self.flying_obstacle_width = 0.0725
+        self.flying_obstacle_height = 0.1
         self.obstacle_spawn_prob = 0.025
+        self.obstacle_is_flying_prob = 0.25
         self.jump_a = 0.0417
         self.G = 0.00417
         self.max_steps = max_steps
@@ -90,9 +93,16 @@ class DinoGame:
     def _spawn_obstacle_if_can(self):
         if (len(self.obstacles) == 0 or self.obstacles[-1].x < 0.3) and random.uniform(0, 1) <= self.obstacle_spawn_prob:
             x = 0.999
-            y = 0
-            w = self.obstacle_width + random.uniform(-0.015, 0.015)
-            h = self.obstacle_height + random.uniform(-0.01, 0.01)
+            if random.uniform(0, 1) <= self.obstacle_is_flying_prob:
+                # спавним летающее препятствие
+                y = self.player_height + 0.025
+                w = self.flying_obstacle_width + random.uniform(-0.0125, 0.0125)
+                h = self.flying_obstacle_height + random.uniform(-0.008, 0.008)
+            else:
+                # спавним наземное препятствие
+                y = 0
+                w = self.ground_obstacle_width + random.uniform(-0.015, 0.015)
+                h = self.ground_obstacle_height + random.uniform(-0.01, 0.01)
             self.obstacles.append(Obstacle(x, y, w, h))
 
     def _state(self):
@@ -104,10 +114,10 @@ class DinoGame:
         return np.array([
             self.y, # координата динозаврика
             self.dy,      # скорость динозаврика
-            (nearest.x - self.x), # координата x ближайшего препятствия
-            (nearest.y - self.y), # координата y ближайшего препятствия
-            self.obstacle_width, # ширина ближайшего препятствия
-            self.obstacle_height # высота ближайшего препятствия
+            nearest.x - self.x, # координата x ближайшего препятствия
+            nearest.y - self.y, # координата y ближайшего препятствия
+            nearest.w, # ширина ближайшего препятствия
+            nearest.h # высота ближайшего препятствия
         ])
 
 class Obstacle:
