@@ -12,16 +12,16 @@ class DinoGame:
 
         self.state_dim = 6
 
-        self.x = 50
+        self.x = 0.07825
 
-        self.game_speed = 12
-        self.player_width = 50
-        self.player_height = 80
-        self.obstacle_width = 50
-        self.obstacle_height = 80
+        self.game_speed = 0.01875
+        self.player_width = 0.07825
+        self.player_height = 0.1667
+        self.obstacle_width = 0.07825
+        self.obstacle_height = 0.1667
         self.obstacle_spawn_prob = 0.025
-        self.jump_a = 20
-        self.G = 2
+        self.jump_a = 0.0417
+        self.G = 0.00417
         self.max_steps = max_steps
 
     def step(self, action: int) -> Tuple[np.ndarray, int, bool, bool]:
@@ -34,8 +34,9 @@ class DinoGame:
                 reward -= 0.03
 
         self.y += self.dy
-        if self.y <= 0:
-            self.dy = 0
+        if self.y <= 0.:
+            self.dy = 0.
+            self.y = 0.
         else:
             self.dy -= self.G
 
@@ -61,9 +62,9 @@ class DinoGame:
     def reset(self, seed: Optional[int] = None) -> np.ndarray:
         random.seed(seed)
 
-        self.t = 0
-        self.y = 0
-        self.dy = 0
+        self.t = 0.
+        self.y = 0.
+        self.dy = 0.
         self.obstacles = []
 
         return self._state()
@@ -78,31 +79,35 @@ class DinoGame:
         win.fill(bg)
         pygame.draw.rect(win, ground, (0, self.height-ground_height, self.width, ground_height))
         for o in self.obstacles:
-            pygame.draw.rect(win, oc, (o.x, self.height-ground_height-o.h-o.y, o.w, o.h))
-        pygame.draw.rect(win, pc, (self.x, self.height-self.player_height-ground_height-self.y, self.player_width, self.player_height))
+            pygame.draw.rect(win, oc, (o.x*self.width, self.height-ground_height-(o.h+o.y)*self.height, o.w*self.width, o.h*self.height))
+        pygame.draw.rect(win, pc, (
+            self.x*self.width,  # x
+            self.height-ground_height-(self.y + self.player_height)*self.height, # y
+            self.player_width*self.width, # w
+            self.player_height*self.height # h
+        ))
 
     def _spawn_obstacle_if_can(self):
-        left_margin = 250
-        if (len(self.obstacles) == 0 or self.obstacles[-1].x < self.width-left_margin) and random.uniform(0, 1) <= self.obstacle_spawn_prob:
-            x = self.width-1
+        if (len(self.obstacles) == 0 or self.obstacles[-1].x < 0.3) and random.uniform(0, 1) <= self.obstacle_spawn_prob:
+            x = 0.999
             y = 0
-            w = self.obstacle_width + random.randrange(-10, 10)
-            h = self.obstacle_height + random.randrange(-5, 5)
+            w = self.obstacle_width + random.uniform(-0.015, 0.015)
+            h = self.obstacle_height + random.uniform(-0.01, 0.01)
             self.obstacles.append(Obstacle(x, y, w, h))
 
     def _state(self):
-        nearest = Obstacle(-100, 0, 0, 0)
+        nearest = Obstacle(-1, 0, 0, 0)
         for obstacle in self.obstacles:
             if obstacle.x > self.x:
                 nearest = obstacle
                 break
         return np.array([
-            self.y / self.width, # координата динозаврика
-            self.dy / 10.0,      # скорость динозаврика
-            (nearest.x - self.x) / self.width, # координата x ближайшего препятствия
-            (nearest.y - self.y) / self.height, # координата y ближайшего препятствия
-            self.obstacle_width / self.width, # ширина ближайшего препятствия
-            self.obstacle_height / self.height # высота ближайшего препятствия
+            self.y, # координата динозаврика
+            self.dy,      # скорость динозаврика
+            (nearest.x - self.x), # координата x ближайшего препятствия
+            (nearest.y - self.y), # координата y ближайшего препятствия
+            self.obstacle_width, # ширина ближайшего препятствия
+            self.obstacle_height # высота ближайшего препятствия
         ])
 
 class Obstacle:
